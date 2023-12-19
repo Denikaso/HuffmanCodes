@@ -18,7 +18,7 @@
         {
             sortedWordFrequencies = new List<HuffmanNode>();
             var priorityQueue = new List<KeyValuePair<double, HuffmanNode>>();
-            var remainder = wordFrequencies.Count % blockSize;
+            var remainder = (wordFrequencies.Count - 1) % (blockSize - 1) + 1;
 
             // Создание упорядоченного списка узлов.
             foreach (var entry in wordFrequencies.OrderByDescending(pair => int.Parse(pair.Key)))
