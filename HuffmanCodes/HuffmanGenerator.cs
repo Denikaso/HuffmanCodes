@@ -4,93 +4,101 @@
     {
         private Dictionary<string, double> wordFrequencies;
 
+        // Конструктор класса HuffmanGenerator.
+        // frequencies: Словарь, содержащий слова и их частоты появления.
         public HuffmanGenerator(Dictionary<string, double> frequencies)
         {
             wordFrequencies = frequencies;
         }
 
-        public HuffmanNode BuildHuffmanTree(int blockSize)
+        // Построение дерева Хаффмана и упорядоченного списка узлов.
+        // blockSize: Размер блока для группировки узлов при слиянии.
+        // sortedWordFrequencies: Выходной параметр, содержит упорядоченный список узлов.
+        public void BuildHuffmanTree(int blockSize, out List<HuffmanNode> sortedWordFrequencies)
         {
-            var priorityQueue = new SortedDictionary<double, List<HuffmanNode>>();
-
-            var sortedWordFrequencies = wordFrequencies.OrderBy(pair => pair.Key);
-
+            sortedWordFrequencies = new List<HuffmanNode>();
+            var priorityQueue = new List<KeyValuePair<double, HuffmanNode>>();
             var remainder = wordFrequencies.Count % blockSize;
-            var blockCounter = 0;
 
-            foreach (var entry in sortedWordFrequencies)
+            // Создание упорядоченного списка узлов.
+            foreach (var entry in wordFrequencies.OrderByDescending(pair => int.Parse(pair.Key)))
             {
-                var node = new HuffmanNode { Word = entry.Key, Frequency = entry.Value, Children = new List<HuffmanNode>() };
-                priorityQueue[entry.Value].Add(node);
-
-                if (++blockCounter == remainder)
-                {
-                    blockCounter = 0;
-                    priorityQueue = new SortedDictionary<double, List<HuffmanNode>>(priorityQueue);
-                }
-            }
-       
-            while (priorityQueue.Count > 1)
-            {
-                var pair = priorityQueue.First();
-                var freq = pair.Key;
-                var nodes = pair.Value;
-
-                if (nodes.Count == 1)
-                {
-                    priorityQueue.Remove(freq);
-                }
-                else
-                {
-                    priorityQueue[freq] = nodes.Skip(1).ToList();
-                }
-
-                var newNode = new HuffmanNode
-                {
-                    Word = null,
-                    Frequency = freq,
-                    Children = nodes.ToList()
-                };
-
-                var newFreq = freq + priorityQueue.Keys.FirstOrDefault();
-                if (!priorityQueue.ContainsKey(newFreq))
-                {
-                    priorityQueue[newFreq] = new List<HuffmanNode>();
-                }
-
-                priorityQueue[newFreq].Add(newNode);
-
-                if (++blockCounter == blockSize && priorityQueue.Count > 1)
-                {
-                    blockCounter = 0;
-                    priorityQueue = new SortedDictionary<double, List<HuffmanNode>>(priorityQueue);
-                }
+                var node = new HuffmanNode { Word = entry.Key, Frequency = entry.Value };
+                sortedWordFrequencies.Add(node);
+                priorityQueue.Add(new KeyValuePair<double, HuffmanNode>(node.Frequency, node));
             }
 
-            return priorityQueue.First().Value.First();
+            // Обработка остатка от деления размера списка на размер блока.
+            if (remainder != 0)
+            {
+                var newNode = new HuffmanNode { Word = "", Frequency = 0 };
+                for (var i = 0; i < remainder; i++)
+                {
+                    var node = priorityQueue[0].Value;
+                    var freq = priorityQueue[0].Key;
+                    priorityQueue.Remove(priorityQueue.First());
+                    node.Code = (blockSize - i - 1).ToString();
+                    node.Children.Add(newNode);
+                    newNode.Frequency += freq;
+                    newNode.Word += i < remainder - 1 ? node.Word + "and" : node.Word;
+                }
+                AddToPriorityQueue(priorityQueue, newNode.Frequency, newNode);
+            }
+
+            // Основной цикл слияния узлов.
+            if (priorityQueue.Count >= blockSize)
+            {
+                while (priorityQueue.Count > 1)
+                {
+                    var newNode = new HuffmanNode { Word = "", Frequency = 0 };
+                    for (var i = 0; i < blockSize; i++)
+                    {
+                        var node = priorityQueue[0].Value;
+                        var freq = priorityQueue[0].Key;
+                        priorityQueue.Remove(priorityQueue.First());
+                        node.Code = (blockSize - i - 1).ToString();
+                        node.Children.Add(newNode);
+                        newNode.Frequency += freq;
+                        newNode.Word += i < blockSize - 1 ? node.Word + "and" : node.Word;
+                    }
+                    AddToPriorityQueue(priorityQueue, newNode.Frequency, newNode);
+                }
+            }
         }
 
-        public Dictionary<string, string> GenerateHuffmanCodes(HuffmanNode root, string currentCode = "")
+        // Добавление узла в приоритетную очередь.
+        private void AddToPriorityQueue(List<KeyValuePair<double, HuffmanNode>> priorityQueue, double frequency, HuffmanNode node)
         {
-            var codes = new Dictionary<string, string>();
+            int index = 0;
 
-            if (root != null)
+            // Если очередь пуста, добавляем новый узел.
+            if (priorityQueue.Count == 0)
             {
-                if (root.Word != null)
-                {
-                    codes[root.Word] = currentCode;
-                }
-                else
-                {
-                    foreach (var child in root.Children)
-                    {
-                        codes = codes
-                            .Concat(GenerateHuffmanCodes(child, currentCode + "0"))
-                            .ToDictionary(k => k.Key, v => v.Value);
-                    }
-                }
+                priorityQueue.Add(new KeyValuePair<double, HuffmanNode>(node.Frequency, node));
             }
+            else
+            {
+                // Находим индекс, на который нужно вставить новый элемент.
+                while (index < priorityQueue.Count && frequency > priorityQueue[index].Key)
+                {
+                    index++;
+                }
 
+                // Вставляем новый элемент на найденный индекс.
+                priorityQueue.Insert(index, new KeyValuePair<double, HuffmanNode>(frequency, node));
+            }
+        }
+
+        // Генерация кодов Хаффмана для узла и его дочерних узлов.
+        public string GenerateHuffmanCodes(HuffmanNode node)
+        {
+            string codes;
+            codes = node.Code;
+            foreach (var child in node.Children)
+            {
+                if (child.Code != null)
+                    codes += GenerateHuffmanCodes(child);
+            }
             return codes;
         }
     }

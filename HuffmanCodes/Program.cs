@@ -8,7 +8,7 @@ if (!int.TryParse(Console.ReadLine(), out int blockSize) || blockSize <= 0)
     return;
 }
 
-Dictionary<string, double> wordFrequencies = ReadFrequenciesFromFile("frequencies.txt", blockSize);
+Dictionary<string, double> wordFrequencies = ReadFrequenciesFromFile("C:\\Уник\\ТиК\\HuffmanCodes\\frequencies.txt", blockSize);
 
 if (Math.Abs(wordFrequencies.Values.Sum() - 1.0) > 0.0001)
 {
@@ -17,18 +17,31 @@ if (Math.Abs(wordFrequencies.Values.Sum() - 1.0) > 0.0001)
 }
 
 var huffmanGenerator = new HuffmanGenerator(wordFrequencies);
-
-var huffmanTree = huffmanGenerator.BuildHuffmanTree(blockSize);
-
-var huffmanCodes = huffmanGenerator.GenerateHuffmanCodes(huffmanTree);
-
-
-foreach (var entry in huffmanCodes)
+List<HuffmanNode> sortedWordFrequencies = new List<HuffmanNode>();
+huffmanGenerator.BuildHuffmanTree(blockSize, out sortedWordFrequencies);
+double averageLength = 0;
+foreach (HuffmanNode node in sortedWordFrequencies)
 {
-    Console.WriteLine($"{entry.Key}: {entry.Value}");
+    string code = huffmanGenerator.GenerateHuffmanCodes(node);
+    string reversedCode = new string(code.Reverse().ToArray());
+
+    averageLength += reversedCode.Length * node.Frequency;
+
+    Console.Write("Код для слова ");
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.Write($"{node.Word}: ");
+    Console.ForegroundColor = ConsoleColor.White;
+    Console.WriteLine(reversedCode);
 }
 
- Dictionary<string, double> ReadFrequenciesFromFile(string filePath, int blockSize)
+Console.Write("Средняя длина слова: ");
+Console.ForegroundColor = ConsoleColor.Yellow;
+Console.Write($"{averageLength:F2}");
+Console.ForegroundColor = ConsoleColor.White;
+Console.WriteLine();
+
+
+Dictionary<string, double> ReadFrequenciesFromFile(string filePath, int blockSize)
 {
     var frequencies = new Dictionary<string, double>();
 
